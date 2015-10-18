@@ -1,0 +1,65 @@
+table.deliveryBaloon td
+{
+	font-family: sans-serif;
+	font-size:   10pt;
+}
+
+table.deliveryBaloon tr
+{
+	background-color: #ffffff;
+}
+
+table.deliveryBaloon tr:hover
+{
+	background-color: #ffffa0;
+}
+
+table.deliveryBaloon td
+{
+	padding: 0;
+}
+
+table.deliveryBaloon td.dbDate
+{
+	padding:      2pt;
+	padding-left: 5pt;
+	width:        50pt;
+	font-weight:  bolder;
+	text-align:   left;
+	cursor:       default;
+}
+
+table.deliveryBaloon td div
+{
+	padding:        1pt;
+	margin:         1pt;
+
+	width:          50pt;
+
+	border:         1pt solid #d3d3d3;
+	text-align:     center;
+	vertical-align: middle;
+
+	font-size:      small;
+}
+
+table.deliveryBaloon td div.dbBusy
+{
+	cursor: default;
+	color:  #e8e8e8;
+	background-color: #ff8080;
+}
+
+table.deliveryBaloon td div.dbVacant
+{
+	cursor:           pointer;
+	background-color: #60a060;
+	color:            #ffffff;
+}
+
+table.deliveryBaloon td div.dbVacant:hover
+{
+	cursor:           pointer;
+	background-color: #00dd00;
+	color:            #ffffff;
+}

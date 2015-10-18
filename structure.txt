@@ -1,0 +1,25 @@
+[zone]
+zone		varchar[32]	: PK
+name		varchar[255]
+price		int
+schedule	text
+shape		text
+
+
+
+[schedule]
+id	int		: PK
+zone	varchar[32]	: Key
+date	varchar[10]	: Key
+p1	int
+p2	int
+p3	int
+
+
+[orders]
+id	int		: PK
+zone	varchar[32]	: Key
+date	varchar[10]	: Key
+p1	int
+p2	int
+p3	int

@@ -1,0 +1,179 @@
+#sf1 {
+    border: 0;
+    margin: 0;
+    padding: 0;
+
+    position: fixed;
+    top: 27pt;
+    left: 0;
+    right: 0;
+    bottom: 17pt;
+
+    background-color: #606060;
+    border-bottom: 2pt solid #505050;
+}
+
+#map {
+    padding: 0;
+    margin: 0;
+    border: 0;
+
+    position: absolute;
+    left: 0;
+    top: -15pt;
+    bottom: 15pt;
+    right: 310pt;
+}
+
+#sf1 .zonesEditor {
+    padding: 0;
+    margin: 0;
+    border: 0;
+
+    background-color: #606060;
+
+    width: 300pt;
+    vertical-align: top;
+}
+
+#sf1 div.zonesCaption {
+    margin: 0;
+    padding: 5pt;
+    padding-top: 0;
+
+    width: 300pt;
+    vertical-align: middle;
+    background-color: #505050;
+    color: #ffffff;
+    font-weight: bolder;
+    font-size: 14pt;
+    border-radius: 0 0 0pt 14pt;
+
+    position: absolute;
+    top: -2pt;
+    right: 0;
+}
+
+#sf1 div.zonesFooter {
+    margin: 0;
+    padding: 5pt;
+    padding-bottom: 0;
+    width: 300pt;
+    vertical-align: middle;
+    background-color: #505050;
+    color: #ffffff;
+    font-weight: bolder;
+    font-size: 14pt;
+    border-radius: 14pt 0 0 0;
+
+    position: absolute;
+    bottom: 0;
+    right: 0;
+}
+
+#sf1 div.zonesList {
+    overflow-y: auto;
+    position: absolute;
+    bottom: 22pt;
+    top: 22pt;
+    right: 0;
+    width: 310pt;
+}
+
+#sf1 .zonesCaption .zoneAction, #sf1 .zonesFooter .zoneAction {
+    text-align: center;
+
+    font-weight: bolder;
+    border-radius: 14pt;
+
+    font-weight: bolder;
+    border: 1pt solid #a0a0a0;
+    background-color: #808080;
+    color: #ffffff;
+
+    cursor: pointer;
+}
+
+#sf1 .zonesCaption .zoneAction:hover {
+    background-color: #999900;
+    color: #ffffff;
+}
+
+#sf1 .zonesFooter .zoneAdd:hover {
+    background-color: #99cc00;
+    color: #ffffff;
+}
+
+#sf1 .zonesList .zone .zoneAction {
+    display: inline;
+    padding: 1pt 4pt 1pt 4pt;
+    width: 16pt;
+    height: 16pt;
+
+    font-size: 12pt;
+    font-weight: bolder;
+
+    border: 1pt solid #a0a0a0;
+    background-color: #808080;
+    color: #ffffff;
+
+    cursor: pointer;
+}
+
+#sf1 .zonesList .active .zoneAction {
+    border: 1pt solid #808080;
+    background-color: #b0b0b0;
+}
+
+#sf1 .zonesList .zone .zoneAction:hover {
+    background-color: #a0a0a0;
+    color: #ffffff;
+}
+
+#sf1 .zonesList .zone .zoneRemove:hover {
+    background-color: #cc0000;
+}
+
+#sf1 .zonesList .zone .zoneShow:hover {
+    background-color: #cccc80;
+}
+
+#sf1 .zonesList div.zone {
+    padding: 2pt;
+    text-align: center;
+}
+
+#sf1 .zonesList div.zone:hover {
+    background-color: #808040;
+}
+
+#sf1 .zonesList div.active {
+    background-color: #cccccc;
+}
+
+#sf1 .zonesList div.active:hover {
+    background-color: #cccccc;
+}
+
+#sf1 .zonesList .zone input{
+    font-family: sans-serif;
+    font-size: 12pt;
+    border: 1pt solid #a0a0a0;
+}
+
+#sf1 .zonesList .zone input:invalid {
+    background-color: #ff5020;
+    color: #ffffff;
+}
+
+#sf1 .zonesList .zone input.zoneName {
+    width: 200pt;
+    margin-left: 3pt;
+    margin-right: 3pt;
+}
+
+#sf1 .zonesList .zone input.zonePrice {
+    width: 30pt;
+    margin-left: 0pt;
+    margin-right: 3pt;
+}

@@ -1,0 +1,230 @@
+/* look base */
+
+#contract div, #contract div.frameSet td, #contract div.frameSet td input {
+    font-family: sans-serif;
+    font-size: 12pt;
+}
+
+#contract div.frameSet td.zonesEditor input, #contract div.frameSet td.tm input {
+    border: 1pt solid #a0a0a0;
+}
+
+#contract div.frameSet td, #contract div.frameSet td.tm input {
+    text-align: center;
+}
+
+#contract div.frameSet table thead {
+    font-size: 14pt;
+}
+
+#contract div.frameSet table thead td.tm {
+    font-size: 8pt;
+    font-weight: lighter;
+}
+
+/* layout */
+#contract div.action {
+    background-color: #505050;
+
+    margin: 0;
+    padding: 1pt;
+    padding-left: 5pt;
+    text-align: left;
+
+    position: fixed;
+    left:0;
+    right: 0;
+    bottom: 0;
+    height: 17pt;
+}
+
+#contract div.action input {
+    text-align: center;
+
+    font-weight: bolder;
+    border-radius: 14pt;
+
+    font-weight: bolder;
+    border: 1pt solid #a0a0a0;
+    background-color: #808080;
+    color: #ffffff;
+
+    cursor: pointer;
+}
+
+#contract div.action input:hover {
+    background-color: #d0d0a0;
+    color: #505050;
+}
+
+/* header look */
+
+#contract div.frameSet table thead td {
+    background-color: #606060;
+    color: #ffffff;
+    font-weight: bolder;
+    text-align: center;
+    vertical-align: middle;
+    cursor: default;
+}
+
+#contract div.frameSet table thead td.wd1, #contract div.frameSet table thead td.wd2, #contract div.frameSet table thead td.wd3, #contract div.frameSet table thead td.wd4, #contract div.frameSet table thead td.wd5, #contract div.frameSet table thead td.wd6, #contract div.frameSet table thead td.wd7 {
+    background-color: #00aa00;
+}
+
+#contract div.frameSet table thead td.wd6 {
+    background-color: #0000aa;
+}
+
+#contract div.frameSet table thead td.wd7 {
+    background-color: #aa0000;
+}
+
+/* body look */
+
+#contract div.frameSet table td.zone {
+    width: 200pt;
+	text-align: left;
+	padding-left: 5pt;
+}
+
+#contract div.frameSet table sup {
+    font-size: x-small;
+	font-weight: normal;
+	font-style: italic;
+}
+
+#contract div.frameSet table tr.hl {
+    background-color: #e0e0e0;
+}
+
+#contract div.frameSet table td.tm input {
+    width: 25pt;
+    text-align: center;
+    margin: 1pt;
+    background: none;
+}
+
+#contract div.frameSet table td.tm input.changed {
+    background-color: #80ffbb;
+}
+
+#contract div.frameSet table tr td.tm input:focus {
+    background-color: yellow;
+    color: black;
+}
+
+#contract div.frameSet table tr td.tm input::selection {
+    background-color: yellow;
+    color: black;
+}
+
+#contract div.frameSet table tr td.tm input::-moz-selection {
+    background-color: yellow;
+    color: black;
+}
+
+#contract div.frameSet table tr td input:invalid {
+    background-color: #ff5020;
+    color: #ffffff;
+}
+
+#contract div.frameSet table tr.hl td.arrow {
+    background-color: #a0a0a0;
+}
+
+#contract div.frameSet table thead td.arrow {
+    background-color: #005050;
+    border-bottom: 1pt solid black;
+    padding: 2pt;
+
+    cursor: pointer;
+}
+
+#contract div.frameSet table.contract thead td.arrow:hover {
+    background-color: #00b0b0;
+}
+
+#contract div.frameSet table.contract tr:hover, #contract div.frameSet table tr.hl:focus {
+    background-color: #ffffa0;
+}
+
+/* porebriks */
+
+#contract div.frameSet table td.zone {
+    border-right: 1pt solid black;
+}
+
+#contract div.frameSet table td.arrow {
+    border-right: 1pt solid black;
+    background-color: #b0b0b0;
+}
+
+#contract div.frameSet table td.weekday {
+    border-right: 1pt solid black;
+}
+
+#contract div.frameSet table tbody td {
+    padding: 0;
+}
+
+#contract div.frameSet table td.eod {
+    border-right: 1pt solid black;
+}
+
+/* frames */
+
+#contract div.tabHead {
+    margin: 5pt 0 0 5pt;
+    padding: 0;
+    border: 0;
+}
+
+#contract div.tabHead div {
+    display: inline;
+    margin: 0 0 0 0;
+    padding: 3pt 25pt 1pt 25pt;
+    border: 1pt solid #505050;
+    border-radius: 7pt 7pt 0 0;
+
+    background-color: #505050;
+    color: #ffffff;
+    font-weight: bolder;
+    font-size: 10pt;
+
+    cursor: default;
+}
+
+#contract div.tabHead div.inactive {
+    border-color: #a0a0a0;
+    background-color: #d0d0d0;
+    color: #808080;
+    border-bottom: 0;
+
+    cursor: pointer;
+}
+
+#contract div.tabHead div.inactive:hover {
+    background-color: #d0d0a0;
+    color: #505050;
+}
+
+body, #contract {
+    background-color: #f0f0f0;
+    padding: 0;
+    margin: 0;
+}
+
+#contract div.frameSet {
+    margin: 1pt 0 0 0;
+    border: 7pt solid #505050;
+    border-bottom: 1pt solid #505050;
+    border-left: 0;
+    border-right: 0;
+
+    background-color: #ffffff;
+}
+
+#contract div.frame table {
+    width: 100%;
+}

@@ -1,0 +1,518 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>Управление зонами и расписанием доставки</title>
+
+<link rel="stylesheet" type="text/css" media="screen" href="css/editor.css"/>
+<link rel="stylesheet" type="text/css" media="screen" href="css/zones.css"/>
+
+<script src="http://api-maps.yandex.ru/2.0/?load=package.full&lang=ru-RU" type="text/javascript"></script>
+<script type="text/javascript" src="js/jquery-1.7.2.js" charset="utf-8"></script>
+
+<script type="text/javascript" src="js/tool-lib.js" charset="utf-8"></script>
+<script type="text/javascript" src="js/wrap-lib.js" charset="utf-8"></script>
+<script type="text/javascript" src="js/editor-lib.js" charset="utf-8"></script>
+
+<script type="text/javascript" src="js/test-data.js" charset="utf-8"></script>
+
+<script type="text/javascript">
+jQuery(document).ready(function() {
+    var contract = $('#contract');
+
+    ////////////////////////////////
+    // map editor
+
+    var map;
+
+    var zoneShapes = {}, activeZone, activeShape, showOne = 0, showMany = 1, mapMode = showOne;
+
+    var hideAllShapes = function() {
+        for (var zoneId in zoneShapes) {
+            hideShape(zoneId);
+        }
+    };
+
+    var showShape = function(zoneId) {
+        var zone = zoneShapes[zoneId];
+        if (!zone || zone.shape) return;
+
+        var c = $.zTools.uidToColor(zoneId);
+        zone.shape = new ymaps.Polygon(zone.data.shape, {hintContent: zone.data.zone},
+                {
+                    fill: true,
+                    stroke: true,
+                    strokeWidth: 4,
+                    strokeColor: c + "aa",
+                    fillColor: c + "60",
+                    draggable: false
+                }
+        );
+
+        map.geoObjects.add(zone.shape);
+
+        zone.shape.editor.options.set('drawOver', 'false');
+        zone.shape.editor.options.set('menuManager', function(mi, vertexM) { // block 3 point in outer counter at least
+            if (vertexM.getParent().getParent().getGeometry().getCoordinates()[0].length < 5) {
+                var m = [], i;
+                for (i = 1; i < mi.length; i++) m[m.length] = mi[i];
+                return m;
+            } else {
+                return mi;
+            }
+        });
+        zone.shape.editor.options.set('dblClickHandler', function(e) {
+        });
+
+        zone.shape.events.add('geometrychange', zone.edit);
+        zone.shape.events.add('click', zone.click);
+    };
+
+    var hideShape = function(zoneId) {
+        var zone = zoneShapes[zoneId];
+        if (!zone.shape) return;
+
+        map.geoObjects.remove(zone.shape);
+
+        delete zone.shape;
+
+        zone.list.removeClass('active');
+    };
+
+    var addZoneToEditor = function(data, zoneId) { // создать многоугольник и добавать управление им
+        var zone = data[zoneId], zd = data, zi = zoneId;
+        var shape = zoneShapes[zoneId] = {data: zone, shape: null, edit: null, click: null, list: null};
+
+        shape.list = $($.doWrap.zoneListItem(zone.zone, zone.price, $.zTools.uidToColor(zoneId, 0.001))).appendTo($('#sf1 div.zonesList'));
+
+        shape.edit = function(e) {
+            zone.shape = e.originalEvent.target.geometry.getCoordinates();
+            onChange();
+        };
+
+        shape.click = function() {
+            if (activeShape == shape) return;
+
+            if (activeShape && activeShape.shape) activeShape.shape.editor.stopEditing();
+            if (mapMode == showOne) {
+                hideAllShapes();
+                showShape(zi);
+            }
+            shape.shape.editor.startEditing();
+
+            activeShape = shape;
+            activeZone = zi;
+
+            $('#sf1 div.zonesList div.zone').removeClass('active');
+            shape.list.addClass('active');
+            shape.list.find('input.zoneName').focus();
+        };
+
+        // set handlers:
+
+        showShape(zoneId);
+
+        shape.list.click(shape.click);
+
+        shape.list.find('div.zoneShow').click(function() {
+            shape.click();
+            map.setBounds(shape.shape.geometry.getBounds());
+        });
+
+        shape.list.find('input.zoneName').change(function(evt) {// change name handler
+            var val = evt.target.value;
+            if (zone.zone == val) return;
+            if (! new RegExp(evt.target.pattern).exec(val)) return;
+
+            zone.zone = val;
+            shape.shape.properties.set('hintContent', val);
+            onChange();
+        });
+
+        shape.list.find('input.zonePrice').change(function(evt) {// change name handler
+            var val = evt.target.value;
+            if (zone.price == val) return;
+            if (! new RegExp(evt.target.pattern).exec(val)) return;
+
+            zone.price = new Number(val);
+            onChange();
+        });
+
+        shape.list.find('div.zoneRemove').click(function() {
+            removeZone(zd, zi);
+            activeShape = activeZone = null;
+        });
+
+        shape.click();
+    };
+
+    var removeZoneFromEditor = function(zoneId) {
+        /**
+         * удалить многоугольник с карты и элемент управления им из #sf1 div.zonesList
+         */
+        hideShape(zoneId);
+        zoneShapes[zoneId].list.remove();
+        delete zoneShapes[zoneId];
+    };
+
+    var addNewZone = function(data) {
+        // detect shape:
+        var z = map.getZoom();
+        map.setZoom(z + 1);
+        var shape = map.getBounds();
+        shape.push([shape[1][0],shape[0][1]]);
+        shape.push([shape[0][0],shape[1][1]]);
+        map.setZoom(z);
+
+        var zone = {
+            zone : '',
+            price : 0,
+            schedule :[
+                [],
+                [],
+                [],
+                [],
+                [],
+                [],
+                []
+            ],
+            shape : [shape]
+        };
+
+        var zoneId = $.zTools.genUID();
+
+        data[zoneId] = zone;
+        onChange();
+
+        addZoneToEditor(data, zoneId);
+    };
+
+    var removeZone = function(data, zoneId) {
+        removeZoneFromEditor(zoneId);
+        delete data[zoneId];
+        onChange();
+    };
+
+    var createZoneEditor = function(data) {
+        // reset map
+        if (map) {
+            map.destroy();
+            map = null;
+        }
+
+        map = new ymaps.Map('map', {
+                    center: [55.75, 37.617],
+                    zoom: 8,
+                    behaviors: ["default", "scrollZoom"]
+                },
+                {
+                    minZoom : 8
+                });
+        var bounds = map.getBounds();
+        map.setZoom(12);
+
+        searchControl = new ymaps.control.SearchControl({
+            boundedBy : bounds,
+            strictBounds: true,
+            useMapBounds: false,
+            noCentering: false,
+            noPlacemark: true,
+            resultsPerPage: 20,
+            width: 600
+        });
+
+        map.controls
+                .add(new ymaps.control.MapTools(['drag','magnifier']))
+                .add('smallZoomControl')
+                .add(searchControl, { top: '3px', right: '5pt' });
+
+        var fcp = function(n1, n2) {
+            return n1.toPrecision(4) < n2.toPrecision(4);
+        };
+
+        // fix map bounds
+        map.events.add('boundschange', function (e) {
+            var b = map.getBounds(), c = map.getCenter();
+
+            if (fcp(b[0][0], bounds[0][0])) {
+                map.setCenter([c[0] + (bounds[0][0] - b[0][0]), c[1]]);
+            } else if (fcp(b[0][1], bounds[0][1])) {
+                map.setCenter([c[0], c[1] + (bounds[0][1] - b[0][1])]);
+            } else if (fcp(bounds[1][0], b[1][0])) {
+                map.setCenter([c[0] - (b[1][0] - bounds[1][0]), c[1]]);
+            } else if (fcp(bounds[1][1], b[1][1])) {
+                map.setCenter([c[0], c[1] - (b[1][1] - bounds[1][1])]);
+            }
+        });
+
+        // reset names
+        $('#sf1 div.zonesList').children().remove();
+
+        // set editing mode
+        mapMode = showMany;
+        $('#sf1 div.zoneShowAll').click(function(evt) {
+            var elm = $(evt.target);
+            hideAllShapes();
+
+            if (mapMode == showMany) {
+                mapMode = showOne;
+                elm.html('показать все зоны');
+                showShape(activeZone);
+                if (activeShape) map.setBounds(activeShape.shape.geometry.getBounds());
+            } else if (mapMode == showOne) {
+                mapMode = showMany;
+                elm.html('показать редактируемую зону');
+                for (var zoneId in zoneShapes) {
+                    showShape(zoneId);
+                }
+            }
+            if (activeShape) {
+                activeShape.list.addClass('active');
+                activeShape.shape.editor.startEditing();
+            }
+        });
+
+        $('#sf1 div.zoneAdd').click(function(evt) {
+            addNewZone(data);
+        });
+
+        // adds zones to editor
+        for (var zoneId in data) {
+            addZoneToEditor(data, zoneId);
+        }
+    };
+
+    ////////////////////////////////
+    // template editor
+
+    var createTemplateEditor = function(tab, data) {
+        $(tab).children().remove();
+
+        var i, k, line, e = '', z, tn = $.contractEditor.timeName, tnl = tn.length;
+        var templateData = data;
+
+        e = $.contractEditor.constructHeader();
+
+        var zones = '', it = 0;
+        for (var code in templateData) {
+            it++;
+            z = templateData[code];
+            line = $.doWrap.td('zone', false, false, $.doWrap.zoneName(z));
+
+            for (i = 1; i <= 7; i++) {
+                for (k = 0; k < tnl; k++) {
+                    line += $.doWrap.td('tm wd' + i + '  tm' + (k + 1) + (k == tnl - 1 ? ' eod' : ''),
+                            false, false,
+                            $.doWrap.inputNumber(
+                                    $.zTools.id(code, i, k),
+                                    tn[k],
+                                    z.schedule[i - 1][k] ? z.schedule[i - 1][k] : 0
+                            )
+                    );
+                }
+            }
+            zones += $.doWrap.tr(line, it % 2 == 0 ? 'hl' : false);
+        }
+        e += $.doWrap.tbody(zones);
+
+        var table = $($.doWrap.table('TemplateEditor', e)).appendTo($(tab));
+
+        // editor handlers
+        $.contractEditor.addHandlers(table, function(zone, dateId, tm, newVal) {
+            templateData[zone].schedule[dateId - 1][tm] = newVal;
+            onChange();
+        });
+    };
+
+    ////////////////////////////////
+    // schedule editor
+    var startWeek = $.zTools.dayToWeekNbr(new Date());
+
+    var createScheduleEditor = function(tab, tData, sData, fromWeek) {
+        $(tab).children().remove();
+
+        var i, k, line, e = '', tZone, eZone, tn = $.contractEditor.timeName, tnl = tn.length;
+        var fromWeek = $.zTools.weekNbrToDay(fromWeek), day, dayZone;
+        var templateData = tData;
+        var scheduleData = sData;
+
+        var weekDays = [];
+        for (i = 0; i < 7; i++) {
+            weekDays[i] = $.zTools.dateToStr(fromWeek + i * $.zTools.dayLng);
+        }
+        e = $.contractEditor.constructHeader(weekDays, true);
+
+        var zones = '', it = 0;
+        for (var code in templateData) {
+            it++;
+            tZone = templateData[code];
+            eZone = scheduleData[code];
+            line = $.doWrap.td('zone', false, false, $.doWrap.zoneName(tZone));
+            line += $.doWrap.td('arrow leftArrow', false, false, '<br/>');
+
+            for (i = 1; i <= 7; i++) {
+                day = $.zTools.dateToStr(fromWeek + (i - 1) * $.zTools.dayLng);
+
+                for (k = 0; k < tnl; k++) {
+                    line += $.doWrap.td('tm wd' + i + '  tm' + (k + 1) + (k == tnl - 1 ? ' eod' : ''),
+                            false, false,
+                            $.doWrap.inputNumber(
+                                    $.zTools.id(code, day, k),
+                                    tn[k],
+                                    tZone.schedule[i - 1][k] ? tZone.schedule[i - 1][k] : 0,
+                                    eZone ? eZone[day] ? eZone[day][k] : false : false
+                            )
+                    );
+                }
+            }
+            line += $.doWrap.td('arrow rightArrow', false, false, '<br/>');
+            zones += $.doWrap.tr(line, it % 2 == 0 ? 'hl' : false);
+        }
+        e += $.doWrap.tbody(zones);
+
+        var table = $($.doWrap.table('ScheduleEditor', e)).appendTo($(tab));
+
+        // editor handlers
+        $.contractEditor.addHandlers(table, function(zone, date, tm, newVal, defaultVal, elm) {
+            if (newVal == defaultVal) {
+                $(elm).removeClass('changed');
+                delete exceptDays[zone][date];
+            } else {
+                $(elm).addClass('changed');
+
+                if (!exceptDays[zone]) exceptDays[zone] = {};
+                if (!exceptDays[zone][date]) exceptDays[zone][date] = [];
+                exceptDays[zone][date][tm] = newVal;
+            }
+            onChange();
+        });
+
+        // week ruler handlers
+        var currentWeek = fromWeek, tb = tab;
+        table.find('thead .leftArrow').click(function() {
+            startWeek = $.zTools.dayToWeekNbr(currentWeek - $.zTools.weekLng);
+            createScheduleEditor(tb, templateData, scheduleData, startWeek);
+        });
+
+        table.find('thead .rightArrow').click(function() {
+            startWeek = $.zTools.dayToWeekNbr(currentWeek + $.zTools.weekLng);
+            createScheduleEditor(tb, templateData, scheduleData, startWeek);
+        });
+    };
+
+
+    ////////////////////////////////
+    // update/save/cancel actions
+
+    var zonesData, exceptDays;
+    var saveTime = new Date().getTime(), changeTime, lastChangeTime;
+
+    var onChange = function() {
+        changeTime = new Date().getTime();
+    };
+
+    $('#saveAll').click(function() {
+        if (changeTime > saveTime &&
+                confirm('Сохранить все изменения от ' + $.zTools.dateToStr(changeTime, true) + ' ?')) {
+            data_zones = zonesData;
+            data_schedule = exceptDays;
+
+            saveTime = changeTime;
+            resetFrames();
+
+            //TODO add save action
+            alert(JSON.stringify(data_zones)+JSON.stringify(data_schedule));
+        }
+    });
+
+    $('#cancelAll').click(function() {
+        if (changeTime > saveTime &&
+                confirm('Отменить все изменения и вернуться к версии от ' + $.zTools.dateToStr(saveTime, true) + ' ?')) {
+            resetFrames();
+        }
+    });
+
+    var resetFrames = function() {
+        changeTime = saveTime;
+        lastChangeTime = changeTime - 1;
+
+        //TODO load data (in background?)
+        zonesData = $.parseJSON(JSON.stringify(data_zones));
+        exceptDays = $.parseJSON(JSON.stringify(data_schedule));
+        updateFrames();
+        createZoneEditor(zonesData);
+    };
+
+    var updateFrames = function() {
+        if (lastChangeTime < changeTime) {
+            lastChangeTime = changeTime;
+
+            createTemplateEditor($('#sf2'), zonesData);
+            createScheduleEditor($('#sf3'), zonesData, exceptDays, startWeek);
+        }
+    };
+
+    $(window).bind('beforeunload', function() {
+        if (changeTime > saveTime)
+            return 'У вас остались несохранённые данные от ' + $.zTools.dateToStr(changeTime, true) + '.';
+    });
+
+    ////////////////////////////////
+    // tabs
+
+    var showTab = function(elm) {
+        $('#contract .frame').hide();
+        $('#contract .tabSelector').removeClass('inactive');
+        $('#contract .tabSelector').addClass('inactive');
+        $(elm).removeClass('inactive');
+        $('#s' + elm.id).show();
+
+        updateFrames();
+    };
+
+    showTab(contract.find('#f1').get(0));
+    contract.find('.tabHead').click(function(evt) {
+        showTab(evt.target);
+    });
+
+
+    ////////////////////////////////
+    // start all
+
+    ymaps.ready(function () {
+        resetFrames();
+    });
+});
+</script>
+</head>
+<body>
+
+<div id="contract">
+    <div class="tabHead">
+        <div id="f1" class="tabSelector">Разметка зон</div>
+        <div id="f2" class="tabSelector">Шаблон расписания</div>
+        <div id="f3" class="tabSelector">Редактор расписания</div>
+    </div>
+    <div class="frameSet">
+        <div id="sf1" class="frame">
+            <div id="map"><br/></div>
+            <div class="zonesCaption">
+                <div class="zoneAction zoneShowAll">показать редактируемую зону</div>
+            </div>
+            <div class="zonesList"><br/></div>
+            <div class="zonesFooter">
+                <div class="zoneAction zoneAdd" title="добавить зону доставки">добавить зону доставки</div>
+            </div>
+        </div>
+        <div id="sf2" class="frame"></div>
+        <div id="sf3" class="frame"></div>
+    </div>
+    <div class="action">
+        <input type="button" id="saveAll" class="action " value="сохранить всё" title="сохранить все послежние изменения на сервере"/>
+        <input type="button" id="cancelAll" class="action " value="сбросить всё" title="отменить все изменения и вернуться к последней сохранённой версии"/>
+    </div>
+</div>
+
+</body>
+</html>

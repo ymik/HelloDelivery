@@ -1,0 +1,113 @@
+get Zone info:
+
+[URL] /getZones?r=[uncaching val]
+[GET]
+{
+    "[zone id]":
+    {
+        "zone":"[zone name]",
+        "price":"[price]",
+        "schedule":[value of schedule prop],
+        "shape":[value of shape prop]
+    },
+    ...
+}
+
+
+[URL] /getSchedule?from=[timestamp in seconds]&to=[timestamp in seconds]&r=[uncaching val]
+[GET]
+{
+    "[zone id]": // grouped by zone key
+    {
+        "[date val]": // grouped by date key
+        [
+            "[p1 val]",
+            "[p2 val]",
+            "[p3 val]"
+        ],
+        ...
+    },
+    ...
+}
+
+
+[URL] /storeZones
+[POST]
+{
+    "[zone id]":
+    {
+        "zone":"[zone name]",
+        "price":"[price]",
+        "schedule":[value of schedule prop],
+        "shape":[value of shape prop]
+    },
+    ...
+}
+
+
+[URL] /storeSchedule
+[POST]
+{
+    "[zone id]": // grouped by zone key
+    {
+        "[date val]": // grouped by date key
+        [
+            "[p1 val]",
+            "[p2 val]",
+            "[p3 val]"
+        ],
+        ...
+    },
+    ...
+}
+
+
+[URL] /getOrders?from=[timestamp in seconds]&to=[timestamp in seconds]&r=[uncaching val]
+[GET]
+{
+    "[zone id]": // grouped by zone key
+    {
+        "[date val]": // grouped by date key
+        [
+            "[p1 val]",
+            "[p2 val]",
+            "[p3 val]"
+        ],
+        ...
+    },
+    ...
+}
+
+
+[URL] /createOrder?date=[date val]&period=[period id]&r=[uncaching val]
+[GET]
+{
+    "[zone id]": // grouped by zone key
+    {
+        "[date val]": // grouped by date key
+        [
+            "[p1 val]",
+            "[p2 val]",
+            "[p3 val]"
+        ],
+        ...
+    },
+    ...
+}
+
+
+[URL] /removeOrder?date=[date val]&period=[period id]&r=[uncaching val]
+[GET]
+{
+    "[zone id]": // grouped by zone key
+    {
+        "[date val]": // grouped by date key
+        [
+            "[p1 val]",
+            "[p2 val]",
+            "[p3 val]"
+        ],
+        ...
+    },
+    ...
+}

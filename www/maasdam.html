@@ -1,0 +1,256 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>Просмотр расписания доставки</title>
+
+    <link rel="stylesheet" type="text/css" media="screen" href="css/viewer.css"/>
+    <link rel="stylesheet" type="text/css" media="screen" href="css/baloon.css"/>
+
+    <script src="http://api-maps.yandex.ru/2.0/?load=package.full&mode=debug&lang=ru-RU"
+            type="text/javascript"></script>
+    <script type="text/javascript" src="js/jquery-1.7.2.js" charset="utf-8"></script>
+
+    <script type="text/javascript" src="js/tool-lib.js" charset="utf-8"></script>
+    <script type="text/javascript" src="js/test-data.js" charset="utf-8"></script>
+
+    <script type="text/javascript">
+        jQuery(document).ready(function() {
+
+            ymaps.ready(function () {
+
+                //////////////////////////////////////
+                // init map:
+
+                var map = new ymaps.Map('map', {
+                            center: [55.75, 37.617],
+                            zoom: 8,
+                            behaviors: ["default", "scrollZoom"]
+                        },
+                        {
+                            minZoom : 8
+                        });
+
+                var bounds = map.getBounds();
+                map.setZoom(12);
+
+                searchControl = new ymaps.control.SearchControl({
+                    boundedBy : bounds,
+                    strictBounds: true,
+                    useMapBounds: false,
+                    noCentering: false,
+                    noPlacemark: true,
+                    resultsPerPage: 20,
+                    width: 600
+                });
+
+                map.controls
+                        .add(new ymaps.control.MapTools(['drag','magnifier']))
+                        .add('smallZoomControl')
+                        .add(searchControl, { top: '3px', right: '5pt' });
+
+                var fcp = function(n1, n2) {
+                    return n1.toPrecision(4) < n2.toPrecision(4);
+                };
+
+                // fix map bounds
+                map.events.add('boundschange', function (e) {
+                    var b = map.getBounds(), c = map.getCenter();
+
+                    if (fcp(b[0][0], bounds[0][0])) {
+                        map.setCenter([c[0] + (bounds[0][0] - b[0][0]), c[1]]);
+                    } else if (fcp(b[0][1], bounds[0][1])) {
+                        map.setCenter([c[0], c[1] + (bounds[0][1] - b[0][1])]);
+                    } else if (fcp(bounds[1][0], b[1][0])) {
+                        map.setCenter([c[0] - (b[1][0] - bounds[1][0]), c[1]]);
+                    } else if (fcp(bounds[1][1], b[1][1])) {
+                        map.setCenter([c[0], c[1] - (b[1][1] - bounds[1][1])]);
+                    }
+                });
+
+                //////////////////////////////////////
+                // data loading
+
+                //TODO automatically load order & zones data in background
+                var zoneData = data_zones;
+                var orders = data_orders;
+
+                /**
+                 * returns zone model
+                 */
+                var getZone = function(zoneId) {
+                    return data_zones[zoneId];
+                };
+
+                /**
+                 * returns schedule from date and 7 day after it in
+                 * [
+                 *      {
+                 *          date:(Date object),
+                 *          schedule: [
+                 *              (max orders for morning),
+                 *              (max orders for day),
+                 *              (max orders for evening)
+                 *              ],
+                 *          orders: [
+                 *              (orders for morning),
+                 *              (orders for day),
+                 *              (orders for evening)
+                 *              ]
+                 *      }
+                 * ]
+                 */
+                var getSchedule = function(zoneId, date) {
+                    if (!date) date = new Date();
+
+                    var orders = data_orders[zoneId]; //TODO data updating? what about zoneData?
+                    var schTemplate = getZone(zoneId).schedule;
+                    var schExceptions = data_schedule[zoneId];
+
+                    var i, tm = date.getTime(), d = date.getDay() - 1, e, dt, r;
+                    d = d < 0 ? 7 : d;
+
+                    var result = [];
+                    for (i = 0; i < 7; i++) {
+                        r = {date: date};
+
+                        dt = $.zTools.dateToStr(tm + i * $.zTools.dayLng);
+                        e = schExceptions ? schExceptions[dt] : null;
+                        r.schedule = e ? e : schTemplate[(d + i) % 7];
+
+                        e = orders ? orders[dt] : null;
+                        r.orders = e ? e : [0,0,0];
+
+                        result.push(r);
+                    }
+
+                    return result;
+                };
+
+                //////////////////////////////////////
+                // construct zones data:
+
+                var zones = data_zones;//TODO data updating? what about zoneData?
+                var zoneShapes = {};
+
+                for (var zoneId in zones)
+                    if (zones[zoneId]) {
+                        var shape = new ymaps.Polygon(zones[zoneId].shape, {}, {
+                            fill: false,
+                            stroke: false,
+                            draggable: false
+                        });
+                        map.geoObjects.add(shape);
+                        zoneShapes[zoneId] = shape.geometry;
+                    }
+
+                var select = false;
+                var wrap = {
+                    periodNames : [
+                        ['9:00','12:00'],
+                        ['12:00','18:00'],
+                        ['18:00','21:00']
+                    ],
+                    table : function(s) {
+                        return '<table class="deliveryBaloon" cellspacing="0">' + s + '</table>';
+                    },
+                    tr : function(s) {
+                        return '<tr>' + s + '</tr>';
+                    },
+                    td : function(s, cls) {
+                        return '<td ' +
+                                (cls ? 'class="' + cls + '"' : '') +
+                                '>' + s + '</td>';
+                    },
+                    period : function(id, period, isVacant, date) {
+                        return wrap.td('<div' +
+                                ' id="' + id + '"' +
+                                ' class="' + (isVacant ? 'dbVacant' : 'dbBusy') + ' dbP' + period + '"' +
+                                ' title="' + (isVacant ? 'заказать доставку в ' + date : 'нет доставки') +
+                                ' с ' + wrap.periodNames[period][0] + ' до ' + wrap.periodNames[period][1] +
+                                '">' +
+                                wrap.periodNames[period][0] + '<br/>' + wrap.periodNames[period][1] +
+                                '</div>');
+                    }
+                };
+                var positionHandler = function(p) {
+                    select = false;
+                    map.balloon.close();
+                    for (var zoneId in zoneShapes) {
+                        if (zoneShapes[zoneId].contains(p)) {
+                            var content = '', c, i, j, s, tm, dt;
+                            var schedule = getSchedule(zoneId);
+                            for (i = 0; i < schedule.length; i++) {
+                                s = schedule[i];
+                                tm = s.date.getTime() + i * $.zTools.dayLng;
+                                dt = $.zTools.dateToStr(tm, false, true);
+                                c = wrap.td(dt, 'dbDate');
+                                for (j = 0; j < s.schedule.length; j++) {
+                                    c += wrap.period(
+                                            $.zTools.id(zoneId, tm, j),
+                                            j,
+                                            s.schedule[j] > s.orders[j],
+                                            dt
+                                    );
+                                }
+
+                                content += wrap.tr(c);
+                            }
+                            content = wrap.table(content);
+
+                            map.balloon.open(p,
+                                    {
+                                        contentHeader: 'Зона доставки ' + zones[zoneId].zone,
+                                        contentBody: content,
+                                        contentFooter: 'стоимость доставки: ' + zones[zoneId].price
+                                    },
+                                    {closeButton: true});
+
+                            $('table.deliveryBaloon div.dbVacant').click(function(e) {
+                                var z = $.zTools.fromId(e.target.id);
+                                var zone = getZone(z[0]);
+                                var date = new Date(z[1]);
+                                var period = z[2];
+                                alert('заказ зоны ' + zone.zone +
+                                        ', цена ' + zone.price +
+                                        ', период ' + ['утро','день','вечер'][period]);
+                                //TODO process custom handlers
+                            });
+
+                        }
+                    }
+                };
+
+                //////////////////////////////////////
+                // add handlers:
+
+                map.events.add('click', function(e) {
+                    positionHandler(e.get('coordPosition'));
+                });
+
+                map.events.add('boundschange', function(e) {
+                    if (select) {
+                        positionHandler(map.getCenter());
+                    }
+                });
+
+                searchControl.events.add('submit', function(e) {
+                    select = true;
+                });
+
+                searchControl.events.add('resultshow', function(e) {
+                    select = true;
+                });
+
+                searchControl.events.add('resultselect', function(e) {
+                    select = true;
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+<div id="map"></div>
+</body>
+</html>
